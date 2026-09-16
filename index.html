@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>افزودن کانفیگ به اپ</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    font-family: system-ui, "Segoe UI", Tahoma, sans-serif; background: #0f172a; color: #e2e8f0;
+    padding: 20px;
+  }
+  .card { max-width: 420px; width: 100%; background: #1e293b; border-radius: 16px; padding: 24px; text-align: center; }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  p { font-size: 14px; line-height: 1.8; color: #94a3b8; margin: 8px 0; }
+  .big { display: block; width: 100%; padding: 14px; margin-top: 14px; border: 0; border-radius: 12px;
+         background: #2563eb; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .ghost { background: #334155; }
+  code { display: block; word-break: break-all; background: #0f172a; padding: 12px; border-radius: 10px;
+         font-size: 11px; color: #cbd5e1; margin-top: 14px; text-align: left; direction: ltr; }
+  .hide { display: none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1 id="title">در حال باز کردن اپ...</h1>
+  <p id="msg">اگر اپ خودش باز نشد، دکمه‌ی زیر را بزنید.</p>
+
+  <a id="open" class="big" href="#">باز کردن در اپ</a>
+  <button id="copy" class="big ghost">📋 کپی کانفیگ</button>
+
+  <p>اگر باز هم باز نشد، کانفیگ زیر را کپی کنید و داخل اپ «Import from Clipboard» بزنید:</p>
+  <code id="cfg"></code>
+</div>
+
+<script>
+(function () {
+  function b64urlDecode(s) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    var bin = atob(s);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+
+  var q = new URLSearchParams(location.search);
+  var app = (q.get('a') || '').toLowerCase();
+  var name = q.get('n') || 'ZAHED';
+  var cfg = '';
+  try { cfg = b64urlDecode(q.get('c') || ''); } catch (e) { cfg = ''; }
+
+  var labels = { v2box: 'V2Box', v2rayng: 'v2rayNG', hiddify: 'Hiddify', shadowrocket: 'Shadowrocket' };
+
+  function deepLink(app, cfg) {
+    var enc = encodeURIComponent(cfg);
+    switch (app) {
+      case 'v2box':        return 'v2box://install-config?url=' + enc;
+      case 'v2rayng':      return 'v2rayng://install-config?url=' + enc;
+      case 'hiddify':      return 'hiddify://import/' + cfg;   // طبق ویکی رسمی: بدون encode
+      case 'shadowrocket': return 'shadowrocket://add/' + enc;
+      default:             return cfg;                          // خودِ لینک کانفیگ
+    }
+  }
+
+  if (!cfg) {
+    document.getElementById('title').textContent = 'لینک نامعتبر است';
+    document.getElementById('msg').textContent = 'دوباره از ربات کانفیگ بگیرید.';
+    return;
+  }
+
+  var target = deepLink(app, cfg);
+  var label = labels[app] || 'اپ';
+
+  document.getElementById('title').textContent = 'افزودن ' + name + ' به ' + label;
+  document.getElementById('cfg').textContent = cfg;
+  var openBtn = document.getElementById('open');
+  openBtn.href = target;
+  openBtn.textContent = 'باز کردن در ' + label;
+
+  document.getElementById('copy').addEventListener('click', function () {
+    var done = function () {
+      document.getElementById('copy').textContent = '✅ کپی شد';
+    };
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(cfg).then(done, function () {});
+    } else {
+      var t = document.createElement('textarea');
+      t.value = cfg; document.body.appendChild(t); t.select();
+      try { document.execCommand('copy'); done(); } catch (e) {}
+      document.body.removeChild(t);
+    }
+  });
+
+  // تلاش خودکار برای باز کردن اپ
+  setTimeout(function () { location.href = target; }, 250);
+})();
+</script>
+</body>
+</html>
